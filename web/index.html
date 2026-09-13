@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>配方谱系试制台</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1>配方谱系试制台</h1>
+      <div class="sub">墨锭配方版本谱系 · 试磨流转 · 快照留痕</div>
+    </div>
+    <div class="head-actions">
+      <button id="newRootBtn" class="primary">＋ 新建配方</button>
+      <button id="reloadBtn" class="ghost">刷新</button>
+    </div>
+  </header>
+
+  <section class="stats" id="stats"></section>
+
+  <main>
+    <aside class="panel tree-panel">
+      <div class="panel-head">
+        <h2>谱系</h2>
+        <input id="searchInput" class="search" placeholder="搜编号 / 烟料 / 标题">
+      </div>
+      <div id="tree" class="tree"></div>
+    </aside>
+
+    <section class="panel detail-panel">
+      <div id="detail" class="detail-empty">从左侧谱系选择一个版本</div>
+    </section>
+  </main>
+
+  <!-- 统一弹层 -->
+  <div id="modalBackdrop" class="backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3 id="modalTitle"></h3>
+        <button id="modalClose" class="icon-btn" aria-label="关闭">×</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-foot">
+        <button id="modalCancel" class="ghost">取消</button>
+        <button id="modalOk" class="primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
