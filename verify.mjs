@@ -147,6 +147,45 @@ try {
   const bad = await post("/api/versions", { formula: { glueRatio: "8%" } });
   check("缺烟料创建被 400 拒绝", bad.status === 400 && bad.body.error === "invalid_formula");
 
+  /* 1.5 空的可选字段必须保持为空，不能变成占位符 */
+  section("1.5 空选填项保真");
+  const blank = await post("/api/versions", {
+    title: "缺温湿度方",
+    formula: { smokeSource: "油烟", glueRatio: "8%", ageYears: null, storageLocation: "木匣", storageTemp: "", storageHumidity: "   " },
+  });
+  check("仅必填项创建 201", blank.status === 201);
+  check("未填的温度/湿度/年限保存为空（null/空串而非 — 或空白）",
+    blank.body.formula.storageTemp === "" && blank.body.formula.storageHumidity === "" && blank.body.formula.ageYears === null,
+    JSON.stringify(blank.body.formula));
+
+  // 刷新等价：重新 GET 回来仍然是空
+  const blankAgain = await api(`/api/versions/${blank.body.id}`);
+  check("刷新后空字段仍是空值，不出现破折号",
+    blankAgain.body.formula.storageTemp === "" && blankAgain.body.formula.storageHumidity === "" && blankAgain.body.formula.ageYears === null);
+
+  // 历史脏数据：客户端误把 — 占位符回传，服务端归一化为空
+  const dirty = await post("/api/versions", {
+    title: "占位符脏值方",
+    formula: { smokeSource: "漆烟", glueRatio: "9%", storageLocation: "木匣", storageTemp: "—", storageHumidity: "--" },
+  });
+  check("破折号占位符被服务端还原为空", dirty.body.formula.storageTemp === "" && dirty.body.formula.storageHumidity === "");
+
+  // 衍版空值差异：把空值版本定版后衍版，空→空不得标成变化；留空继承也不得写入占位符
+  await post(`/api/versions/${blank.body.id}/start-grinding`, {});
+  await post(`/api/versions/${blank.body.id}/submit-grinding`, { paper: "皮纸", score: 80 });
+  await post(`/api/versions/${blank.body.id}/confirm`, {});
+  const blankDerived = await post(`/api/versions/${blank.body.id}/derive`, {
+    formula: { storageTemp: "", storageHumidity: "  ", smokeSource: "油烟", glueRatio: "8%", storageLocation: "木匣" },
+  });
+  check("空值定版版本可衍版 201", blankDerived.status === 201);
+  check("衍版后空字段仍为空，不出现破折号",
+    blankDerived.body.formula.storageTemp === "" && blankDerived.body.formula.storageHumidity === "" && blankDerived.body.formula.ageYears === null,
+    JSON.stringify(blankDerived.body.formula));
+  const blankDiff = await api(`/api/versions/${blank.body.id}/diff/${blankDerived.body.id}`);
+  check("空→空不算配方变化（差异为零项）",
+    blankDiff.body.fields.every((f) => !f.changed),
+    JSON.stringify(blankDiff.body.fields.filter((f) => f.changed)));
+
   /* 2. 状态机：非法跳转、重复确认、重复试磨 */
   section("2. 状态机约束");
   const flow = (await post("/api/versions", { title: "流程方", ...FORMULA() })).body; // 待试制

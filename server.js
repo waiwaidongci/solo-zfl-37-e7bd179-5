@@ -170,7 +170,9 @@ function normalizeFormula(input) {
   for (const { key, type } of FORMULA_FIELDS) {
     let v = f[key];
     if (v !== undefined && v !== null) v = String(v).trim();
-    out[key] = type === "number" ? (v === "" || v === undefined ? null : Number(v)) : v ?? "";
+    // 界面历史版本可能把空选填项渲染成破折号占位符再回传，这里统一还原为空
+    if (v === "—" || v === "--" || v === "－") v = "";
+    out[key] = type === "number" ? (v === "" || v === undefined || v === null ? null : Number(v)) : v ?? "";
   }
   return out;
 }
@@ -186,13 +188,18 @@ function findVersion(db, idOrCode) {
   return db.versions.find((v) => v.id === idOrCode || v.code === idOrCode);
 }
 
+// 空值语义统一：null / undefined / 空串视为同一个“空”，差异视图不把空→空标成变化
+function normVal(x) {
+  return x === null || x === undefined || String(x).trim() === "" ? "" : String(x);
+}
+
 function formulaDiff(a, b) {
   return FORMULA_FIELDS.map(({ key, label }) => ({
     field: key,
     label,
     from: a?.[key] ?? null,
     to: b?.[key] ?? null,
-    changed: String(a?.[key] ?? "") !== String(b?.[key] ?? ""),
+    changed: normVal(a?.[key]) !== normVal(b?.[key]),
   }));
 }
 

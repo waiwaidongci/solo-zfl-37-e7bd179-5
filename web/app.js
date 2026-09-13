@@ -38,9 +38,6 @@ function fmtAt(iso) {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-function val(x) {
-  return x === null || x === undefined || x === "" ? "—" : String(x);
-}
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -169,21 +166,25 @@ function actionsFor(v) {
   return btns;
 }
 
+function blank(x) {
+  return x === null || x === undefined || x === "" ? "" : String(x);
+}
+
 function formulaTable(f) {
   return `<table class="kv"><tbody>
-    ${META.formulaFields.map((field) => `<tr><th>${esc(field.label)}</th><td>${esc(val(f[field.key]))}</td></tr>`).join("")}
+    ${META.formulaFields.map((field) => `<tr><th>${esc(field.label)}</th><td>${esc(blank(f[field.key]))}</td></tr>`).join("")}
   </tbody></table>`;
 }
 
 function grindTable(g) {
   const d = g.data || {};
   return `<table class="kv"><tbody>
-    <tr><th>试磨纸张</th><td>${esc(val(d.paper))}</td></tr>
-    <tr><th>加水量</th><td>${esc(val(d.water))}</td></tr>
-    <tr><th>出墨速度</th><td>${esc(val(d.speed))}</td></tr>
-    <tr><th>墨色层次</th><td>${esc(val(d.colorLayer))}</td></tr>
-    <tr><th>沉淀情况</th><td>${esc(val(d.sediment))}</td></tr>
-    <tr><th>评分</th><td><b>${d.score === null || d.score === undefined ? "—" : d.score}</b></td></tr>
+    <tr><th>试磨纸张</th><td>${esc(blank(d.paper))}</td></tr>
+    <tr><th>加水量</th><td>${esc(blank(d.water))}</td></tr>
+    <tr><th>出墨速度</th><td>${esc(blank(d.speed))}</td></tr>
+    <tr><th>墨色层次</th><td>${esc(blank(d.colorLayer))}</td></tr>
+    <tr><th>沉淀情况</th><td>${esc(blank(d.sediment))}</td></tr>
+    <tr><th>评分</th><td><b>${d.score === null || d.score === undefined ? "" : d.score}</b></td></tr>
     ${d.note ? `<tr><th>备注</th><td>${esc(d.note)}</td></tr>` : ""}
   </tbody></table>`;
 }
@@ -209,7 +210,7 @@ async function loadDiff(fromId, toId) {
     $("#diffBox").innerHTML = changed.length
       ? `<table class="diff"><thead><tr><th>字段</th><th>父版本</th><th></th><th>当前版本</th></tr></thead><tbody>
           ${d.fields.filter((f) => f.changed).map(
-            (f) => `<tr class="changed"><td>${esc(f.label)}</td><td>${esc(val(f.from))}</td><td class="arrow">→</td><td>${esc(val(f.to))}</td></tr>`
+            (f) => `<tr class="changed"><td>${esc(f.label)}</td><td>${esc(blank(f.from))}</td><td class="arrow">→</td><td>${esc(blank(f.to))}</td></tr>`
           ).join("")}
         </tbody></table>`
       : '<div class="callout">与父版本配方完全一致（仅产生新版本分支）。</div>';
@@ -319,8 +320,10 @@ function chipSteps() {
 }
 
 function fieldHtml(f, value, required = false) {
+  // 未填写的选填项必须是空输入框，不能把 — 占位符回显成真值再提交
+  const raw = value === null || value === undefined ? "" : String(value);
   return `<label>${esc(f.label)}${required ? " *" : ""}</label>
-    <input name="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}" value="${esc(val(value))}" ${required ? "data-required='1'" : ""}>`;
+    <input name="${esc(f.key)}" type="${f.type === "number" ? "number" : "text"}" value="${esc(raw)}" ${required ? "data-required='1'" : ""}>`;
 }
 function formulaForm(formula = {}, extra = {}) {
   return `<label>版本标题</label><input name="title" value="${esc(extra.title || "")}">
